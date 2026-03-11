@@ -781,6 +781,7 @@
             <input type="file" id="fileInput" class="file-input" accept=".wav,.mp3,.m4a,.aiff,.aac,.ogg">
             <button class="sample-btn" id="oneshotBtn">ONE-SHOT</button>
             <button class="sample-btn" id="loopBtn">LOOP</button>
+            <button class="sample-btn" id="monoBtn">MONO</button>
             <button class="sample-btn" id="autoChopBtn">AUTO-CHOP</button>
             <button class="sample-btn" id="clearSampleBtn">CLEAR</button>
           </div>
@@ -873,6 +874,7 @@
       sampleRate: 44100,
       oneshot: true,
       loop: false,
+      samplerMono: false,  // Cut & restart on key press
       autoChop: false,
       slices: [],
       rootNote: 'C'
@@ -1106,6 +1108,11 @@
       
       initAudio();
       
+      // MONO mode: Stop ALL playing samples before starting new one
+      if (state.samplerMono) {
+        Object.keys(activeSamples).forEach(n => stopSample(n));
+      }
+      
       const slice = state.slices[sliceIndex];
       if (!slice) return;
       
@@ -1150,6 +1157,11 @@
       if (!state.sampleBuffer || !state.powerOn || state.mode !== 'sampler') return;
       
       initAudio();
+      
+      // MONO mode: Stop ALL playing samples before starting new one
+      if (state.samplerMono) {
+        Object.keys(activeSamples).forEach(n => stopSample(n));
+      }
       
       const source = audioCtx.createBufferSource();
       source.buffer = state.sampleBuffer;
@@ -1426,6 +1438,11 @@
       document.getElementById('loopBtn').addEventListener('click', (e) => {
         state.loop = !state.loop;
         e.target.classList.toggle('active', state.loop);
+      });
+      
+      document.getElementById('monoBtn').addEventListener('click', (e) => {
+        state.samplerMono = !state.samplerMono;
+        e.target.classList.toggle('active', state.samplerMono);
       });
       
       document.getElementById('autoChopBtn').addEventListener('click', (e) => {
