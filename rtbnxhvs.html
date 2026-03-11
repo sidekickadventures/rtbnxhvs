@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=576, initial-scale=1.0">
+  <title>RTBNXH - Virtual Synthesizer</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      background: #000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      font-family: system-ui, sans-serif;
+    }
+    
+    .synth {
+      width: 576px;
+      height: 576px;
+      background: #000;
+      border-radius: 8px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      border: 1px solid #7f1d1d;
+    }
+    
+    .controls {
+      height: 320px;
+      display: flex;
+      flex-direction: column;
+      padding: 16px;
+    }
+    
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    
+    .title {
+      color: #dc2626;
+      font-size: 24px;
+      font-weight: bold;
+      letter-spacing: 0.1em;
+    }
+    
+    .led {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #dc2626;
+      animation: pulse 1s ease-in-out infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+    
+    .panels {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    
+    .panel {
+      width: 150px;
+      height: 200px;
+      background: #18181b;
+      border-radius: 8px;
+      padding: 16px;
+      border: 1px solid #7f1d1d;
+    }
+    
+    .panel-title {
+      color: #ef4444;
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 8px;
+    }
+    
+    .wave-buttons {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    
+    .wave-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 4px;
+      background: #27272a;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s;
+    }
+    
+    .wave-btn.active {
+      background: #b91c1c;
+    }
+    
+    .wave-btn svg {
+      width: 16px;
+      height: 16px;
+      color: white;
+    }
+    
+    .slider-container {
+      width: 100%;
+    }
+    
+    .slider-label {
+      color: white;
+      font-size: 12px;
+      margin-bottom: 4px;
+      display: block;
+    }
+    
+    .slider {
+      width: 100%;
+      accent-color: #dc2626;
+    }
+    
+    .slider-value {
+      color: white;
+      font-size: 12px;
+      text-align: center;
+      margin-top: 4px;
+    }
+    
+    .knob-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-top: 8px;
+    }
+    
+    .knob {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: #27272a;
+      position: relative;
+      cursor: pointer;
+      border: 2px solid #7f1d1d;
+    }
+    
+    .knob-indicator {
+      position: absolute;
+      top: 10%;
+      left: 50%;
+      width: 2px;
+      height: 40%;
+      background: #ef4444;
+      transform-origin: bottom center;
+    }
+    
+    .knob-label {
+      color: #ef4444;
+      font-size: 12px;
+      margin-top: 4px;
+    }
+    
+    .knob-value {
+      color: white;
+      font-size: 12px;
+    }
+    
+    .keyboard {
+      height: 256px;
+      position: relative;
+    }
+    
+    .white-keys {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 200px;
+      display: flex;
+    }
+    
+    .white-key {
+      width: 41px;
+      height: 100%;
+      border: 1px solid #3f3f46;
+      border-radius: 0 0 4px 4px;
+      background: white;
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+    
+    .white-key.active {
+      background: #fca5a5;
+    }
+    
+    .black-keys {
+      position: absolute;
+      bottom: 80px;
+      left: 0;
+      right: 0;
+      height: 120px;
+    }
+    
+    .black-key {
+      position: absolute;
+      width: 24px;
+      height: 100%;
+      border-radius: 0 0 4px 4px;
+      background: black;
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+    
+    .black-key.active {
+      background: #7f1d1d;
+    }
+    
+    .volume-panel .slider {
+      writing-mode: vertical-lr;
+      direction: rtl;
+      height: 100px;
+      width: 8px;
+      margin: 0 auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="synth">
+    <div class="controls">
+      <div class="header">
+        <h1 class="title">RTBNXH</h1>
+        <div class="led"></div>
+      </div>
+      <div class="panels">
+        <!-- Oscillator Panel -->
+        <div class="panel">
+          <div class="panel-title">Oscillator</div>
+          <div class="wave-buttons">
+            <button class="wave-btn active" data-wave="sine">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M2 12c2-4 6-4 8 0s6 4 8 0 6-4 8 0"/>
+              </svg>
+            </button>
+            <button class="wave-btn" data-wave="square">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M2 4v16M22 4v16"/>
+              </svg>
+            </button>
+            <button class="wave-btn" data-wave="sawtooth">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M2 20L22 4v16"/>
+              </svg>
+            </button>
+            <button class="wave-btn" data-wave="triangle">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M2 20L12 4l10 16"/>
+              </svg>
+            </button>
+          </div>
+          <div class="knob-container">
+            <div class="knob" id="pitchKnob">
+              <div class="knob-indicator" id="pitchIndicator"></div>
+            </div>
+            <div class="knob-label">Pitch</div>
+            <div class="knob-value" id="pitchValue">0</div>
+          </div>
+        </div>
+        
+        <!-- Filter Panel -->
+        <div class="panel">
+          <div class="panel-title">Filter</div>
+          <div class="slider-container">
+            <label class="slider-label">Cutoff</label>
+            <input type="range" class="slider" id="cutoffSlider" min="20" max="20000" value="2000">
+            <div class="slider-value" id="cutoffValue">2000 Hz</div>
+          </div>
+          <div class="knob-container" style="margin-top: 16px;">
+            <div class="knob" id="resonanceKnob">
+              <div class="knob-indicator" id="resonanceIndicator"></div>
+            </div>
+            <div class="knob-label">Resonance</div>
+            <div class="knob-value" id="resonanceValue">1.0</div>
+          </div>
+        </div>
+        
+        <!-- Volume Panel -->
+        <div class="panel volume-panel">
+          <div class="panel-title">Volume</div>
+          <div class="slider-container">
+            <input type="range" class="slider" id="volumeSlider" min="-40" max="0" value="-10" orient="vertical">
+            <div class="slider-value" id="volumeValue">-10 dB</div>
+          </div>
+          <div style="text-align: center; margin-top: 8px;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2">
+              <path d="M11 5L6 9H2v6h4l5 4V5z"/>
+              <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="keyboard">
+      <div class="white-keys" id="whiteKeys"></div>
+      <div class="black-keys" id="blackKeys"></div>
+    </div>
+  </div>
+
+  <script>
+    // Audio Context
+    let audioCtx = null;
+    let masterGain = null;
+    let filterNode = null;
+    
+    // Synth state
+    const state = {
+      waveform: 'sine',
+      pitch: 0,
+      cutoff: 2000,
+      resonance: 1,
+      volume: -10
+    };
+    
+    // Active oscillators
+    const activeNotes = {};
+    
+    // Note frequencies
+    const noteFrequencies = {
+      'C4': 261.63, 'C#4': 277.18, 'D4': 293.66, 'D#4': 311.13,
+      'E4': 329.63, 'F4': 349.23, 'F#4': 369.99, 'G4': 392.00,
+      'G#4': 415.30, 'A4': 440.00, 'A#4': 466.16, 'B4': 493.88,
+      'C5': 523.25, 'C#5': 554.37, 'D5': 587.33, 'D#5': 622.25,
+      'E5': 659.25, 'F5': 698.46, 'F#5': 739.99, 'G5': 783.99,
+      'G#5': 830.61, 'A5': 880.00, 'A#5': 932.33, 'B5': 987.77
+    };
+    
+    // Notes array
+    const whiteNotes = ['C4', 'D4', 'E4', 'F4', 'G4', 'A4', 'B4', 'C5', 'D5', 'E5', 'F5', 'G5', 'A5', 'B5'];
+    const blackNotes = [
+      { note: 'C#4', pos: 29 },
+      { note: 'D#4', pos: 70 },
+      { note: 'F#4', pos: 152 },
+      { note: 'G#4', pos: 193 },
+      { note: 'A#4', pos: 234 },
+      { note: 'C#5', pos: 316 },
+      { note: 'D#5', pos: 357 },
+      { note: 'F#5', pos: 439 },
+      { note: 'G#5', pos: 480 },
+      { note: 'A#5', pos: 521 }
+    ];
+    
+    // Initialize audio context
+    function initAudio() {
+      if (audioCtx) return;
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      
+      // Master gain
+      masterGain = audioCtx.createGain();
+      masterGain.gain.value = dbToGain(state.volume);
+      
+      // Filter
+      filterNode = audioCtx.createBiquadFilter();
+      filterNode.type = 'lowpass';
+      filterNode.frequency.value = state.cutoff;
+      filterNode.Q.value = state.resonance;
+      
+      filterNode.connect(masterGain);
+      masterGain.connect(audioCtx.destination);
+    }
+    
+    // Convert dB to linear gain
+    function dbToGain(db) {
+      return Math.pow(10, db / 20);
+    }
+    
+    // Play a note
+    function playNote(note) {
+      initAudio();
+      
+      if (activeNotes[note]) return;
+      
+      const freq = noteFrequencies[note];
+      if (!freq) return;
+      
+      // Apply pitch shift
+      const adjustedFreq = freq * Math.pow(2, state.pitch / 12);
+      
+      // Create oscillator
+      const osc = audioCtx.createOscillator();
+      osc.type = state.waveform;
+      osc.frequency.value = adjustedFreq;
+      
+      // Create envelope
+      const env = audioCtx.createGain();
+      env.gain.value = 0;
+      env.gain.linearRampToValueAtTime(0.5, audioCtx.currentTime + 0.05);
+      env.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 0.35);
+      env.gain.linearRampToValueAtTime(0.2, audioCtx.currentTime + 0.8);
+      
+      osc.connect(env);
+      env.connect(filterNode);
+      
+      osc.start();
+      
+      activeNotes[note] = { osc, env };
+      
+      // Visual feedback
+      const keyEl = document.querySelector(`[data-note="${note}"]`);
+      if (keyEl) keyEl.classList.add('active');
+    }
+    
+    // Stop a note
+    function stopNote(note) {
+      if (!activeNotes[note]) return;
+      
+      const { osc, env } = activeNotes[note];
+      
+      // Release envelope
+      env.gain.cancelScheduledValues(audioCtx.currentTime);
+      env.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.1);
+      
+      osc.stop(audioCtx.currentTime + 0.15);
+      
+      delete activeNotes[note];
+      
+      // Visual feedback
+      const keyEl = document.querySelector(`[data-note="${note}"]`);
+      if (keyEl) keyEl.classList.remove('active');
+    }
+    
+    // Update waveform
+    function setWaveform(wave) {
+      state.waveform = wave;
+      
+      // Update buttons
+      document.querySelectorAll('.wave-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.wave === wave);
+      });
+      
+      // Update active oscillators
+      Object.values(activeNotes).forEach(({ osc }) => {
+        osc.type = wave;
+      });
+    }
+    
+    // Update filter
+    function updateFilter() {
+      if (filterNode) {
+        filterNode.frequency.value = state.cutoff;
+        filterNode.Q.value = state.resonance;
+      }
+    }
+    
+    // Update volume
+    function updateVolume() {
+      if (masterGain) {
+        masterGain.gain.value = dbToGain(state.volume);
+      }
+    }
+    
+    // Create keyboard
+    function createKeyboard() {
+      const whiteKeysContainer = document.getElementById('whiteKeys');
+      const blackKeysContainer = document.getElementById('blackKeys');
+      
+      // White keys
+      whiteNotes.forEach(note => {
+        const key = document.createElement('div');
+        key.className = 'white-key';
+        key.dataset.note = note;
+        key.addEventListener('mousedown', () => playNote(note));
+        key.addEventListener('mouseup', () => stopNote(note));
+        key.addEventListener('mouseleave', () => stopNote(note));
+        key.addEventListener('touchstart', (e) => { e.preventDefault(); playNote(note); });
+        key.addEventListener('touchend', (e) => { e.preventDefault(); stopNote(note); });
+        whiteKeysContainer.appendChild(key);
+      });
+      
+      // Black keys
+      blackNotes.forEach(({ note, pos }) => {
+        const key = document.createElement('div');
+        key.className = 'black-key';
+        key.style.left = pos + 'px';
+        key.dataset.note = note;
+        key.addEventListener('mousedown', () => playNote(note));
+        key.addEventListener('mouseup', () => stopNote(note));
+        key.addEventListener('mouseleave', () => stopNote(note));
+        key.addEventListener('touchstart', (e) => { e.preventDefault(); playNote(note); });
+        key.addEventListener('touchend', (e) => { e.preventDefault(); stopNote(note); });
+        blackKeysContainer.appendChild(key);
+      });
+    }
+    
+    // Knob functionality
+    function setupKnob(knobId, indicatorId, valueId, min, max, initial, onChange, format = v => v) {
+      const knob = document.getElementById(knobId);
+      const indicator = document.getElementById(indicatorId);
+      const valueDisplay = document.getElementById(valueId);
+      
+      let value = initial;
+      let isDragging = false;
+      let startY = 0;
+      let startValue = 0;
+      
+      function updateIndicator() {
+        const range = max - min;
+        const percentage = (value - min) / range;
+        const angle = -135 + percentage * 270;
+        indicator.style.transform = `translateX(-50%) rotate(${angle}deg)`;
+        valueDisplay.textContent = format(value);
+      }
+      
+      knob.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        startY = e.clientY;
+        startValue = value;
+        e.preventDefault();
+      });
+      
+      document.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        
+        const deltaY = startY - e.clientY;
+        const range = max - min;
+        const newValue = startValue + (deltaY / 100) * range;
+        value = Math.min(max, Math.max(min, newValue));
+        updateIndicator();
+        onChange(value);
+      });
+      
+      document.addEventListener('mouseup', () => {
+        isDragging = false;
+      });
+      
+      updateIndicator();
+      return { getValue: () => value, setValue: (v) => { value = v; updateIndicator(); } };
+    }
+    
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      createKeyboard();
+      
+      // Wave buttons
+      document.querySelectorAll('.wave-btn').forEach(btn => {
+        btn.addEventListener('click', () => setWaveform(btn.dataset.wave));
+      });
+      
+      // Cutoff slider
+      const cutoffSlider = document.getElementById('cutoffSlider');
+      const cutoffValue = document.getElementById('cutoffValue');
+      cutoffSlider.addEventListener('input', () => {
+        state.cutoff = parseInt(cutoffSlider.value);
+        cutoffValue.textContent = state.cutoff + ' Hz';
+        updateFilter();
+      });
+      
+      // Volume slider
+      const volumeSlider = document.getElementById('volumeSlider');
+      const volumeValue = document.getElementById('volumeValue');
+      volumeSlider.addEventListener('input', () => {
+        state.volume = parseInt(volumeSlider.value);
+        volumeValue.textContent = state.volume + ' dB';
+        updateVolume();
+      });
+      
+      // Knobs
+      setupKnob('pitchKnob', 'pitchIndicator', 'pitchValue', -12, 12, 0, (v) => {
+        state.pitch = v;
+        // Update active notes pitch
+        Object.keys(activeNotes).forEach(note => {
+          const freq = noteFrequencies[note] * Math.pow(2, state.pitch / 12);
+          activeNotes[note].osc.frequency.value = freq;
+        });
+      });
+      
+      setupKnob('resonanceKnob', 'resonanceIndicator', 'resonanceValue', 0.1, 10, 1, (v) => {
+        state.resonance = v;
+        updateFilter();
+      }, v => v.toFixed(1));
+      
+      // Keyboard shortcuts
+      const keyMap = {
+        'a': 'C4', 'w': 'C#4', 's': 'D4', 'e': 'D#4',
+        'd': 'E4', 'f': 'F4', 't': 'F#4', 'g': 'G4',
+        'y': 'G#4', 'h': 'A4', 'u': 'A#4', 'j': 'B4',
+        'k': 'C5', 'o': 'C#5', 'l': 'D5', 'p': 'D#5',
+        ';': 'E5'
+      };
+      
+      document.addEventListener('keydown', (e) => {
+        if (e.repeat) return;
+        const note = keyMap[e.key.toLowerCase()];
+        if (note) playNote(note);
+      });
+      
+      document.addEventListener('keyup', (e) => {
+        const note = keyMap[e.key.toLowerCase()];
+        if (note) stopNote(note);
+      });
+    });
+  </script>
+</body>
+</html>
