@@ -137,6 +137,33 @@
       letter-spacing: 1px;
     }
     
+    .power-btn {
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      transition: all 0.2s;
+    }
+    
+    .power-btn:hover {
+      background: rgba(255,255,255,0.05);
+    }
+    
+    .power-btn .led-indicator {
+      cursor: pointer;
+    }
+    
+    .power-btn.off .led-indicator {
+      background: #333;
+      box-shadow: none;
+    }
+    
+    .power-btn.off .led-text {
+      color: #555;
+    }
+    
     /* Control Surface */
     .control-surface {
       padding: 24px;
@@ -500,6 +527,21 @@
       color: #555;
       font-size: 7px;
     }
+    
+    /* Power Off State */
+    .synth.off .control-surface {
+      opacity: 0.3;
+      pointer-events: none;
+    }
+    
+    .synth.off .keyboard-section {
+      opacity: 0.3;
+      pointer-events: none;
+    }
+    
+    .synth.off .header {
+      background: linear-gradient(180deg, #151518 0%, #101012 100%);
+    }
   </style>
 </head>
 <body>
@@ -511,7 +553,7 @@
         <div class="title">RTBNXH <span>VS</span></div>
       </div>
       <div class="status-bar">
-        <div class="led-display">
+        <div class="power-btn" id="powerBtn" title="Click to toggle power">
           <div class="led-indicator" id="powerLed"></div>
           <span class="led-text">POWER</span>
         </div>
@@ -665,8 +707,33 @@
       resonance: 1,
       volume: -10,
       attack: 0.05,
-      release: 0.8
+      release: 0.8,
+      powerOn: false
     };
+    
+    // Power button handler
+    function togglePower() {
+      state.powerOn = !state.powerOn;
+      
+      const synth = document.querySelector('.synth');
+      const powerLed = document.getElementById('powerLed');
+      const powerBtn = document.getElementById('powerBtn');
+      
+      if (state.powerOn) {
+        synth.classList.remove('off');
+        powerLed.style.background = '#e63946';
+        powerLed.style.boxShadow = '0 0 10px #e63946';
+        powerBtn.classList.remove('off');
+        initAudio();
+      } else {
+        synth.classList.add('off');
+        powerLed.style.background = '#333';
+        powerLed.style.boxShadow = 'none';
+        powerBtn.classList.add('off');
+        // Stop all playing notes
+        Object.keys(activeNotes).forEach(note => stopNote(note));
+      }
+    }
     
     // Active oscillators
     const activeNotes = {};
@@ -730,6 +797,8 @@
     
     // Play note
     function playNote(note) {
+      if (!state.powerOn) return; // Don't play if power is off
+      
       initAudio();
       
       if (activeNotes[note]) return;
@@ -980,6 +1049,16 @@
     
     // Initialize
     document.addEventListener('DOMContentLoaded', () => {
+      // Set initial power state to off
+      const synth = document.querySelector('.synth');
+      synth.classList.add('off');
+      document.getElementById('powerBtn').classList.add('off');
+      document.getElementById('powerLed').style.background = '#333';
+      document.getElementById('powerLed').style.boxShadow = 'none';
+      
+      // Power button click
+      document.getElementById('powerBtn').addEventListener('click', togglePower);
+      
       createKeyboard();
       
       // Wave buttons
