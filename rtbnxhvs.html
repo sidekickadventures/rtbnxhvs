@@ -785,6 +785,20 @@
             <button class="sample-btn" id="autoChopBtn">AUTO-CHOP</button>
             <button class="sample-btn" id="clearSampleBtn">CLEAR</button>
           </div>
+          <div class="chop-settings" id="chopSettings" style="display: none; margin-top: 10px; padding: 10px; background: #0a0a0c; border-radius: 6px; border: 1px solid #2a2a35;">
+            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+              <span style="font-size: 9px; color: #666; letter-spacing: 1px;">CHOP:</span>
+              <select id="chopMode" style="background: #1a1a20; border: 1px solid #2a2a35; color: #00ff88; font-size: 9px; padding: 4px; border-radius: 4px;">
+                <option value="equal">EQUAL</option>
+                <option value="quarters">1/4</option>
+                <option value="eighths">1/8</option>
+                <option value="sixteenths">1/16</option>
+                <option value="bars">1 BAR</option>
+              </select>
+              <span style="font-size: 9px; color: #666;">SLICES:</span>
+              <input type="number" id="numSlices" value="8" min="2" max="32" style="width: 50px; background: #1a1a20; border: 1px solid #2a2a35; color: #00ff88; font-size: 10px; padding: 4px; border-radius: 4px; text-align: center;">
+            </div>
+          </div>
           <div class="slices-display" id="slicesDisplay"></div>
         </div>
       </div>
@@ -876,6 +890,8 @@
       loop: false,
       samplerMono: false,  // Cut & restart on key press
       autoChop: false,
+      chopMode: 'equal',  // 'equal', 'quarters', 'eighths', 'sixteenths', 'bars'
+      numSlices: 8,
       slices: [],
       rootNote: 'C'
     };
@@ -1076,7 +1092,28 @@
       if (!state.sampleBuffer) return;
       
       const duration = state.sampleBuffer.duration;
-      const numSlices = Math.min(16, Math.max(4, Math.floor(duration * 4))); // 4-16 slices based on length
+      
+      // Determine number of slices based on mode
+      let numSlices;
+      switch (state.chopMode) {
+        case 'quarters':
+          numSlices = 4;  // 4 quarter notes per bar
+          break;
+        case 'eighths':
+          numSlices = 8;  // 8 eighth notes per bar
+          break;
+        case 'sixteenths':
+          numSlices = 16;  // 16 sixteenth notes per bar
+          break;
+        case 'bars':
+          numSlices = Math.max(2, Math.min(8, Math.floor(duration / 2))); // 2-8 bars based on duration
+          break;
+        case 'equal':
+        default:
+          numSlices = Math.min(state.numSlices, Math.max(2, Math.floor(duration * 2))); // Use user input, min 2, max based on duration
+          break;
+      }
+      
       const sliceDuration = duration / numSlices;
       
       state.slices = [];
@@ -1448,7 +1485,26 @@
       document.getElementById('autoChopBtn').addEventListener('click', (e) => {
         state.autoChop = !state.autoChop;
         e.target.classList.toggle('active', state.autoChop);
+        
+        // Show/hide chop settings
+        document.getElementById('chopSettings').style.display = state.autoChop ? 'block' : 'none';
+        
         if (state.autoChop && state.sampleLoaded) {
+          autoChopSample();
+        }
+      });
+      
+      // Chop settings listeners
+      document.getElementById('chopMode').addEventListener('change', (e) => {
+        state.chopMode = e.target.value;
+        if (state.autoChop && state.sampleLoaded) {
+          autoChopSample();
+        }
+      });
+      
+      document.getElementById('numSlices').addEventListener('change', (e) => {
+        state.numSlices = parseInt(e.target.value) || 8;
+        if (state.autoChop && state.sampleLoaded && state.chopMode === 'equal') {
           autoChopSample();
         }
       });
