@@ -1116,8 +1116,9 @@
       const pitchShift = Math.pow(2, sliceIndex / 12);
       source.playbackRate.value = pitchShift;
       
+      // Loop if loop mode is on, otherwise play once and stop on release
       source.loop = state.loop;
-      if (!state.oneshot) {
+      if (state.loop) {
         source.loopStart = slice.start;
         source.loopEnd = slice.end;
       }
@@ -1128,11 +1129,13 @@
       source.connect(env);
       env.connect(masterGain);
       
-      // Calculate offset and duration
+      // Play from slice start - no duration limit (plays until stopped)
       const offset = slice.start;
-      const duration = state.oneshot ? (slice.end - slice.start) : undefined;
+      source.start(0, offset);
       
-      source.start(0, offset, duration);
+      // Store reference to stop later
+      source._sliceIndex = sliceIndex;
+      source._env = env;
       
       // Visual feedback
       const sliceEls = document.querySelectorAll('.slice');
@@ -1140,11 +1143,7 @@
         el.classList.toggle('active', i === sliceIndex);
       });
       
-      if (!state.loop && state.oneshot) {
-        setTimeout(() => {
-          sliceEls.forEach(el => el.classList.remove('active'));
-        }, (slice.end - slice.start) * 1000 / pitchShift);
-      }
+      return { source, env };
     }
     
     function playSampleFull(note) {
@@ -1291,7 +1290,11 @@
           // Play slices based on key position
           const noteIndex = whiteNotes.indexOf(note);
           const sliceIndex = noteIndex % state.slices.length;
-          playSlice(sliceIndex);
+          const result = playSlice(sliceIndex);
+          if (result) {
+            // Store for stopping on key release
+            activeSamples[note] = result;
+          }
         } else if (state.sampleLoaded) {
           playSampleFull(note);
         }
